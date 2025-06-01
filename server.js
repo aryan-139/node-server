@@ -1,29 +1,32 @@
-const http = require("http");
+const http = require('http');
 
-// Define a port
-const PORT = 3000;
+const DEFAULT_PORT = 3000;
+const FALLBACK_START = 8000;
 
-// Create the server
-const server = http.createServer((req, res) => {
-  console.log(`${req.method} ${req.url}`);
-
-  // Set response header
-  res.setHeader("Content-Type", "text/plain");
-
-  // Routing logic
-  if (req.url === "/" && req.method === "GET") {
+function startServer(port) {
+  const server = http.createServer((req, res) => {
     res.statusCode = 200;
-    res.end("Welcome to the homepage!");
-  } else if (req.url === "/about" && req.method === "GET") {
-    res.statusCode = 200;
-    res.end("This is the about page.");
-  } else {
-    res.statusCode = 404;
-    res.end("Page not found.");
-  }
-});
+    res.setHeader('Content-Type', 'text/plain');
+    res.end(`Server is running on port ${port}\n`);
+  });
 
-// Start the server
-server.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
-});
+  server.listen(port);
+
+  server.on('listening', () => {
+    console.log(`✅ Server started on http://localhost:${port}`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`⚠️ Port ${port} is in use. Trying next port...`);
+      // Try next port (increment by 1 if we’re already in fallback zone)
+      const nextPort = port < FALLBACK_START ? FALLBACK_START : port + 1;
+      startServer(nextPort);
+    } else {
+      console.error(`❌ Unexpected server error: ${err.message}`);
+    }
+  });
+}
+
+// Start from DEFAULT_PORT
+startServer(DEFAULT_PORT);
